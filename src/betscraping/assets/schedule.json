@@ -1,0 +1,228 @@
+{
+  "schedule": [
+    {
+      "concurrentGames": 1,
+      "date": "2018-06-14 15:00"
+    },
+    {
+      "concurrentGames": 1,
+      "date": "2018-06-15 12:00"
+    },
+    {
+      "concurrentGames": 1,
+      "date": "2018-06-15 18:00"
+    },
+    {
+      "concurrentGames": 1,
+      "date": "2018-06-15 15:00"
+    },
+    {
+      "concurrentGames": 1,
+      "date": "2018-06-16 10:00"
+    },
+    {
+      "concurrentGames": 1,
+      "date": "2018-06-16 16:00"
+    },
+    {
+      "concurrentGames": 1,
+      "date": "2018-06-16 13:00"
+    },
+    {
+      "concurrentGames": 1,
+      "date": "2018-06-16 19:00"
+    },
+    {
+      "concurrentGames": 1,
+      "date": "2018-06-17 18:00"
+    },
+    {
+      "concurrentGames": 1,
+      "date": "2018-06-17 12:00"
+    },
+    {
+      "concurrentGames": 1,
+      "date": "2018-06-17 15:00"
+    },
+    {
+      "concurrentGames": 1,
+      "date": "2018-06-18 12:00"
+    },
+    {
+      "concurrentGames": 1,
+      "date": "2018-06-18 15:00"
+    },
+    {
+      "concurrentGames": 1,
+      "date": "2018-06-18 18:00"
+    },
+    {
+      "concurrentGames": 1,
+      "date": "2018-06-19 15:00"
+    },
+    {
+      "concurrentGames": 1,
+      "date": "2018-06-19 12:00"
+    },
+    {
+      "concurrentGames": 1,
+      "date": "2018-06-19 18:00"
+    },
+    {
+      "concurrentGames": 1,
+      "date": "2018-06-20 15:00"
+    },
+    {
+      "concurrentGames": 1,
+      "date": "2018-06-20 12:00"
+    },
+    {
+      "concurrentGames": 1,
+      "date": "2018-06-20 18:00"
+    },
+    {
+      "concurrentGames": 1,
+      "date": "2018-06-21 15:00"
+    },
+    {
+      "concurrentGames": 1,
+      "date": "2018-06-21 12:00"
+    },
+    {
+      "concurrentGames": 1,
+      "date": "2018-06-21 18:00"
+    },
+    {
+      "concurrentGames": 1,
+      "date": "2018-06-22 15:00"
+    },
+    {
+      "concurrentGames": 1,
+      "date": "2018-06-22 12:00"
+    },
+    {
+      "concurrentGames": 1,
+      "date": "2018-06-22 18:00"
+    },
+    {
+      "concurrentGames": 1,
+      "date": "2018-06-23 18:00"
+    },
+    {
+      "concurrentGames": 1,
+      "date": "2018-06-23 15:00"
+    },
+    {
+      "concurrentGames": 1,
+      "date": "2018-06-23 12:00"
+    },
+    {
+      "concurrentGames": 1,
+      "date": "2018-06-24 12:00"
+    },
+    {
+      "concurrentGames": 1,
+      "date": "2018-06-24 18:00"
+    },
+    {
+      "concurrentGames": 1,
+      "date": "2018-06-24 15:00"
+    },
+    {
+      "concurrentGames": 2,
+      "date": "2018-06-25 14:00"
+    },
+    {
+      "concurrentGames": 2,
+      "date": "2018-06-25 18:00"
+    },
+    {
+      "concurrentGames": 2,
+      "date": "2018-06-26 14:00"
+    },
+    {
+      "concurrentGames": 2,
+      "date": "2018-06-26 18:00"
+    },
+    {
+      "concurrentGames": 2,
+      "date": "2018-06-27 18:00"
+    },
+    {
+      "concurrentGames": 2,
+      "date": "2018-06-27 14:00"
+    },
+    {
+      "concurrentGames": 2,
+      "date": "2018-06-28 18:00"
+    },
+    {
+      "concurrentGames": 2,
+      "date": "2018-06-28 14:00"
+    },
+    {
+      "concurrentGames": 1,
+      "date": "2018-06-30 14:00"
+    },
+    {
+      "concurrentGames": 1,
+      "date": "2018-06-30 18:00"
+    },
+    {
+      "concurrentGames": 1,
+      "date": "2018-07-01 14:00"
+    },
+    {
+      "concurrentGames": 1,
+      "date": "2018-07-01 18:00"
+    },
+    {
+      "concurrentGames": 1,
+      "date": "2018-07-02 14:00"
+    },
+    {
+      "concurrentGames": 1,
+      "date": "2018-07-02 18:00"
+    },
+    {
+      "concurrentGames": 1,
+      "date": "2018-07-03 14:00"
+    },
+    {
+      "concurrentGames": 1,
+      "date": "2018-07-03 18:00"
+    },
+    {
+      "concurrentGames": 1,
+      "date": "2018-07-06 14:00"
+    },
+    {
+      "concurrentGames": 1,
+      "date": "2018-07-06 18:00"
+    },
+    {
+      "concurrentGames": 1,
+      "date": "2018-07-07 14:00"
+    },
+    {
+      "concurrentGames": 1,
+      "date": "2018-07-07 18:00"
+    },
+    {
+      "concurrentGames": 1,
+      "date": "2018-07-10 18:00"
+    },
+    {
+      "concurrentGames": 1,
+      "date": "2018-07-11 18:00"
+    },
+    {
+      "concurrentGames": 1,
+      "date": "2018-07-14 14:00"
+    },
+    {
+      "concurrentGames": 1,
+      "date": "2018-07-15 15:00"
+    }
+  ]
+}
