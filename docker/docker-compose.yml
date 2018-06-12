@@ -1,0 +1,44 @@
+version: '3'
+
+services:
+
+  worldcup.scraper:
+    build: ../src/betscraping
+    restart: always
+    links:
+      - worldcup.db:db
+    depends_on:
+      - "worldcup.db"
+    ports:
+      - "90:80"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=release
+    
+  worldcup.web:
+    build: ../src/web
+    restart: always
+    links:
+      - worldcup.db:db
+    depends_on:
+      - "worldcup.db"
+    ports:
+      - "99:80"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=release
+
+  worldcup.db:
+    image: redis:3.2.11
+    restart: always
+    ports:
+      - "100:6379"
+
+  worldcup.portainer:
+    image: portainer/portainer
+    restart: always
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: --no-auth
+    ports:
+      - 9000:9000
+
+
