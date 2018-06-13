@@ -26,7 +26,7 @@ namespace betscraping
 
         public Scraping()
         {
-            NumberOfParticipants = 14;
+            NumberOfParticipants = 27;
             Database = 10;
             GameId = "55Pi";
         }
@@ -138,6 +138,8 @@ namespace betscraping
             var concurrentMatchesScraped = 0;
             try
             {
+                if(index > NumberOfParticipants) return;
+                
                 driver.Navigate().GoToUrl($"http://www.betme.se/game.html?id={GameId}");
                 var wait = new WebDriverWait(driver, TimeSpan.FromSeconds(30));
 
