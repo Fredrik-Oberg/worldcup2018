@@ -1,8 +1,12 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using betscraping.Models;
+using Newtonsoft.Json;
 using OpenQA.Selenium;
 using OpenQA.Selenium.Chrome;
 using OpenQA.Selenium.Support.UI;
@@ -12,87 +16,86 @@ namespace betscraping
 {
     public class Scraping
     {
+        private const string Participants = "participants:";
+        private const string Isbusy = "IsBusy";
+        private const string Lastupdatematch = "LastUpdateMatch";
+
+        private int NumberOfParticipants { get; }
+        private int Database { get; }
+        private string GameId { get; }
+
         public Scraping()
         {
-            numberOfParticipants = 14;
-            database = 10;
-            gameId = "55Pi";
+            NumberOfParticipants = 14;
+            Database = 10;
+            GameId = "55Pi";
         }
-
-        private int numberOfParticipants { get; set; }
-        private int database { get; set; }
-        private string gameId { get; set; }
-
+        
         private void WriteEvent(string msg)
         {
             try
             {
                 Console.WriteLine(msg);
-                //EventLog.WriteEntry(eventSourceName, msg, EventLogEntryType.Information);
-
             }
             catch (Exception e)
             {
                 Console.WriteLine(e.Message);
             }
-
         }
 
         public void ScrapeBetme()
         {
+            WriteEvent("Check if time to scrape");
 
-            //IWebDriver driver = new ChromeDriver(Environment.CurrentDirectory + "/drivers");
-            var redis = new Redis(database);
+            var redis = new Redis(Database);
 
-            //TODO get values from schedule.json
-            var scheduledGame = DateTime.ParseExact("2018-06-14 15:00", "yyyy-MM-dd HH:mm",
-                CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal);
-
-            var scheduledMatchUtc = DateTime.SpecifyKind(scheduledGame, DateTimeKind.Utc);
             var schedulesConcurrentMatches = 1;
+            var scheduledMatchUtc = GetGameData( ref schedulesConcurrentMatches);
 
             WriteEvent($"{nameof(scheduledMatchUtc)}:{scheduledMatchUtc}" +
                        $"|{nameof(schedulesConcurrentMatches)}:{schedulesConcurrentMatches}");
 
-            var savedLastMatchUpdate = redis.GetRedisValue<DateTime>("LastUpdateMatch");
-            var isBusy = redis.GetRedisValue<bool>("IsBusy");
+            var savedLastMatchUpdate = redis.GetRedisValue<DateTime>(Lastupdatematch);
+
+            var isBusy = redis.GetRedisValue<bool>(Isbusy);
 
             if (scheduledMatchUtc < DateTime.UtcNow && savedLastMatchUpdate != scheduledMatchUtc && isBusy == false)
             {
-                redis.SetRedisValue(true, "IsBusy");
+                redis.SetRedisValue(true, Isbusy);
+                WriteEvent("Start scraping");
+
                 try
                 {
-
                     for (var i = 0; i < 14; i += 3)
                     {
-                        Task[] tasks = new Task[3]
+                        var tasks = new[]
                         {
-                            Task.Factory.StartNew(() =>  Scrape(new ChromeDriver(Environment.CurrentDirectory + "/drivers/1"),
-                                i, schedulesConcurrentMatches, scheduledMatchUtc,redis)),
-                            Task.Factory.StartNew(() =>  Scrape(new ChromeDriver(Environment.CurrentDirectory + "/drivers/2"),
-                                i +1 , schedulesConcurrentMatches, scheduledMatchUtc,redis)),
-                            Task.Factory.StartNew(() =>  Scrape(new ChromeDriver(Environment.CurrentDirectory + "/drivers/3"),
-                                i + 2, schedulesConcurrentMatches, scheduledMatchUtc,redis))
+                            Task.Factory.StartNew(() =>
+                                Scrape(new ChromeDriver(Environment.CurrentDirectory + "/drivers/1"),
+                                    i, schedulesConcurrentMatches, scheduledMatchUtc, redis)),
+                            Task.Factory.StartNew(() =>
+                                Scrape(new ChromeDriver(Environment.CurrentDirectory + "/drivers/2"),
+                                    i + 1, schedulesConcurrentMatches, scheduledMatchUtc, redis)),
+                            Task.Factory.StartNew(() =>
+                                Scrape(new ChromeDriver(Environment.CurrentDirectory + "/drivers/3"),
+                                    i + 2, schedulesConcurrentMatches, scheduledMatchUtc, redis))
                         };
 
                         Task.WaitAll(tasks);
-
                     }
-                    redis.SetRedisValue(scheduledMatchUtc, "LastUpdateMatch");
+
+                    redis.SetRedisValue(scheduledMatchUtc, Lastupdatematch);
                 }
 
 
                 catch (Exception e)
                 {
                     Console.WriteLine(e.Message);
-
                     Console.WriteLine(e.StackTrace);
                 }
                 finally
                 {
-                    //driver.Quit();
-                    redis.SetRedisValue(false, "IsBusy");
-
+                    redis.SetRedisValue(false, Isbusy);
                 }
             }
             else
@@ -104,6 +107,28 @@ namespace betscraping
             }
         }
 
+        private static DateTime GetGameData(ref int schedulesConcurrentMatches)
+        {
+            using (StreamReader r = new StreamReader(AppDomain.CurrentDomain.BaseDirectory + "/assets/schedule.json"))
+            {
+                string json = r.ReadToEnd();
+                var schedules = JsonConvert.DeserializeObject<IList<Schedule>>(json);
+                foreach (var schedule in schedules)
+                {
+                    var parsedGameTime = DateTime.ParseExact(schedule.Start, "yyyy-MM-dd HH:mm",
+                        CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal);
+
+                    var scheduledMatchUtc = DateTime.SpecifyKind(parsedGameTime, DateTimeKind.Utc);
+                    if (scheduledMatchUtc.AddHours(1.5) < DateTime.UtcNow) continue;
+
+                    schedulesConcurrentMatches = schedule.ConcurrentGames;
+                    return scheduledMatchUtc;
+                }
+            }
+
+            return DateTime.MaxValue;
+        }
+
         private void Scrape(IWebDriver driver,
             int index,
             int schedulesConcurrentMatches,
@@ -113,8 +138,7 @@ namespace betscraping
             var concurrentMatchesScraped = 0;
             try
             {
-
-                driver.Navigate().GoToUrl($"http://www.betme.se/game.html?id={gameId}");
+                driver.Navigate().GoToUrl($"http://www.betme.se/game.html?id={GameId}");
                 var wait = new WebDriverWait(driver, TimeSpan.FromSeconds(30));
 
                 var usersTabSelect = wait.Until(ExpectedConditions.ElementIsVisible(By.Id("usersTabSelect")));
@@ -124,6 +148,7 @@ namespace betscraping
                     return wait.Until(ExpectedConditions.ElementIsVisible(By.Id("usersForm")));
                 });
                 var participantsRow = userForm.FindElements(By.CssSelector("tr"));
+
                 //Get participants row for current index
                 var partRow = participantsRow[index];
 
@@ -137,8 +162,7 @@ namespace betscraping
 
                 WriteEvent(participantText);
 
-                //TODO get user from redis and add to matches
-                var user = redis.GetRedisValue<Participant>("participants:" + participant.Text) 
+                var user = redis.GetRedisValue<Participant>(Participants + participant.Text)
                            ?? new Participant(participant.Text);
 
                 user.Points = points;
@@ -149,7 +173,7 @@ namespace betscraping
                 }
                 else
                 {
-                    ((IJavaScriptExecutor)driver).ExecuteScript("arguments[0].click();", participant);
+                    ((IJavaScriptExecutor) driver).ExecuteScript("arguments[0].click();", participant);
                 }
 
                 ReadOnlyCollection<IWebElement> boxes = null;
@@ -197,15 +221,15 @@ namespace betscraping
                         match.HomeTeam = GetTextFromFindElementByClass(row, "eventRowLeft");
                         match.AwayTeam = GetTextFromFindElementByClass(row, "eventRowRight");
 
-                        WriteEvent($"{nameof(match.HomeTeam)}:{match.HomeTeam}" + 
+                        WriteEvent($"{nameof(match.HomeTeam)}:{match.HomeTeam}" +
                                    " - " +
                                    $"|{nameof(match.AwayTeam)}:{match.AwayTeam}");
-                        
+
                         var events = TryAgainException(() => row.FindElement(By.ClassName("eventRowCenter")));
                         var fields = TryAgainException(() => events.FindElements(By.CssSelector("input")));
 
                         var result = fields[0].GetAttribute("value") + " - " + fields[1].GetAttribute("value");
-                        
+
                         match.Result = result;
                         WriteEvent($"{nameof(match.Result)}:{match.Result}");
 
@@ -226,7 +250,7 @@ namespace betscraping
 
                 user.LastUpdated = DateTime.Now.ToString("O");
 
-                redis.SetRedisValue(user, "participants:" + user.Name);
+                redis.SetRedisValue(user, Participants + user.Name);
             }
             catch (Exception e)
             {
@@ -267,7 +291,8 @@ namespace betscraping
             return TryAgainException(() => row.FindElement(By.ClassName(@class))).Text;
         }
 
-        private static DateTime SetTimeZoneForDate(DateTime unset, string timezone)
+        private static DateTime SetTimeZoneForDate(DateTime unset,
+            string timezone)
         {
             var tz = TimeZoneInfo.FindSystemTimeZoneById(timezone);
             return TimeZoneInfo.ConvertTimeToUtc(unset, tz);
@@ -278,7 +303,9 @@ namespace betscraping
             return TryAgain(action, 0, 3);
         }
 
-        private static T TryAgain<T>(Func<T> action, int i, int limit)
+        private static T TryAgain<T>(Func<T> action,
+            int i,
+            int limit)
         {
             try
             {
@@ -290,11 +317,10 @@ namespace betscraping
                 {
                     throw e;
                 }
+
                 var j = i + 1;
                 return TryAgain(action, j, limit);
             }
-
-
         }
     }
 }
