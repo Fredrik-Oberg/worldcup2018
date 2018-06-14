@@ -57,7 +57,6 @@ services:
     container_name: redis-commander
     hostname: redis-commander
     image: rediscommander/redis-commander:latest
-    build: .
     links:
       - worldcup.db:db  
     restart: always
