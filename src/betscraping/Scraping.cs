@@ -9,8 +9,10 @@ using betscraping.Models;
 using Newtonsoft.Json;
 using OpenQA.Selenium;
 using OpenQA.Selenium.Chrome;
+using OpenQA.Selenium.Remote;
 using OpenQA.Selenium.Support.UI;
 using RedisLayer;
+using static System.Environment;
 
 namespace betscraping
 {
@@ -63,21 +65,22 @@ namespace betscraping
             {
                 redis.SetRedisValue(true, Isbusy);
                 WriteEvent("Start scraping");
-
+               
                 try
                 {
                     for (var i = 0; i < NumberOfParticipants; i += 3)
                     {
                         var tasks = new[]
                         {
+                            
                             Task.Factory.StartNew(() =>
-                                Scrape(new ChromeDriver(Environment.CurrentDirectory + "/drivers/1"),
+                                Scrape(NewWebDriver(),
                                     i, schedulesConcurrentMatches, scheduledMatchUtc, redis)),
                             Task.Factory.StartNew(() =>
-                                Scrape(new ChromeDriver(Environment.CurrentDirectory + "/drivers/2"),
+                                Scrape(NewWebDriver(),
                                     i + 1, schedulesConcurrentMatches, scheduledMatchUtc, redis)),
                             Task.Factory.StartNew(() =>
-                                Scrape(new ChromeDriver(Environment.CurrentDirectory + "/drivers/3"),
+                                Scrape(NewWebDriver(),
                                     i + 2, schedulesConcurrentMatches, scheduledMatchUtc, redis))
                         };
 
@@ -107,6 +110,15 @@ namespace betscraping
             }
         }
 
+        private static RemoteWebDriver NewWebDriver()
+        {
+            var driverAddress = GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT").Equals("release", StringComparison.OrdinalIgnoreCase)
+                ? "http://driver:4444/wd/hub"
+                : "http://localhost:4444/wd/hub";
+
+            return new RemoteWebDriver(new Uri(driverAddress), new ChromeOptions());
+        }
+
         private static DateTime GetGameData(ref int schedulesConcurrentMatches)
         {
             using (StreamReader r = new StreamReader(AppDomain.CurrentDomain.BaseDirectory + "/assets/schedule.json"))
@@ -119,7 +131,7 @@ namespace betscraping
                         CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal);
 
                     var scheduledMatchUtc = DateTime.SpecifyKind(parsedGameTime, DateTimeKind.Utc);
-                    if (scheduledMatchUtc.AddHours(1.5) < DateTime.UtcNow) continue;
+                    if (scheduledMatchUtc.AddHours(8) < DateTime.UtcNow) continue;
 
                     schedulesConcurrentMatches = schedule.ConcurrentGames;
                     return scheduledMatchUtc;
@@ -283,7 +295,7 @@ namespace betscraping
 
             var parsedMatchTime = DateTime.Parse(matchTime, CultureInfo.InvariantCulture, DateTimeStyles.None);
 
-            var matchTimeutc = SetTimeZoneForDate(parsedMatchTime, "W. Europe Standard Time");
+            var matchTimeutc = SetTimeZoneForDate(parsedMatchTime, "UTC");
             return matchTimeutc;
         }
 

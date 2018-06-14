@@ -2,13 +2,22 @@ version: '3'
 
 services:
 
+  worldcup.webdriver:
+    image: selenium/standalone-chrome
+    restart: always
+    volumes:
+      - /dev/shm:/dev/shm
+    ports:
+      - 4444:4444
   worldcup.scraper:
     build: ../src/betscraping
     restart: always
     links:
       - worldcup.db:db
+      - worldcup.webdriver:driver
     depends_on:
       - "worldcup.db"
+      - "worldcup.webdriver"
     ports:
       - "90:80"
     environment:
@@ -40,11 +49,22 @@ services:
     restart: always
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - worldcup.portainer.data:/data
     command: --admin-password "$$2y$$05$$aqaAsxl.LPtZJGHJbXNELuIC1WXs8ytI5y6PBfCUyDBryJ7ysjGIK" 
     ports:
       - 9000:9000
 
+  worldcup.redis-commander:
+    container_name: redis-commander
+    hostname: redis-commander
+    image: rediscommander/redis-commander:latest
+    build: .
+    links:
+      - worldcup.db:db  
+    restart: always
+    environment:
+      - REDIS_HOSTS=local:db:6379:10
+    ports:
+      - 7999:8081
+
 volumes:
   worldcup.redis.data:
-  worldcup.portainer.data:
