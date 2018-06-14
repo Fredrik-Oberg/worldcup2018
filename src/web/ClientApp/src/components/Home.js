@@ -52,6 +52,7 @@ export class Home extends Component {
             columns={columns}
             filterable={true}
             showPagination={false}
+            defaultPageSize={35}
           />
         </div>
       )}
