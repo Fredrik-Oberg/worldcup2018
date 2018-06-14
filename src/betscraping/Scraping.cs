@@ -131,7 +131,11 @@ namespace betscraping
                         CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal);
 
                     var scheduledMatchUtc = DateTime.SpecifyKind(parsedGameTime, DateTimeKind.Utc);
-                    if (scheduledMatchUtc.AddHours(8) < DateTime.UtcNow) continue;
+
+                    var hoursToAdd = 1.5;
+                    Console.WriteLine($"scheduledMatchUtc + {hoursToAdd}:{scheduledMatchUtc.AddHours(hoursToAdd)}{Environment.NewLine} UTCTimeNow:{DateTime.UtcNow}");
+                    
+                    if (scheduledMatchUtc.AddHours(hoursToAdd) < DateTime.UtcNow) continue;
 
                     schedulesConcurrentMatches = schedule.ConcurrentGames;
                     return scheduledMatchUtc;
