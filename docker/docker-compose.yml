@@ -29,6 +29,9 @@ services:
   worldcup.db:
     image: redis:3.2.11
     restart: always
+    command: redis-server --appendonly yes
+    volumes:
+      - worldcup.redis.data:/data
     ports:
       - "100:6379"
 
@@ -37,8 +40,11 @@ services:
     restart: always
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-    command: --no-auth
+      - worldcup.portainer.data:/data
+    command: --admin-password "$$2y$$05$$aqaAsxl.LPtZJGHJbXNELuIC1WXs8ytI5y6PBfCUyDBryJ7ysjGIK" 
     ports:
       - 9000:9000
 
-
+volumes:
+  worldcup.redis.data:
+  worldcup.portainer.data:
