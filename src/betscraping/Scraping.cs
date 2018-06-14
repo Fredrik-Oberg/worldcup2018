@@ -26,7 +26,7 @@ namespace betscraping
 
         public Scraping()
         {
-            NumberOfParticipants = 29;
+            NumberOfParticipants = 33;
             Database = 10;
             GameId = "55Pi";
         }
