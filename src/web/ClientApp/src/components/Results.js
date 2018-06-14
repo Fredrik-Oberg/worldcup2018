@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
+import { Col, Grid, Row } from 'react-bootstrap';
 import ResultsTable from "./ResultsTable";
-
 export class Results extends Component {
     displayName = Results.name
 
@@ -36,8 +36,18 @@ export class Results extends Component {
 
     return (
       <div>
-        <h1>Alla resultat</h1>
-        {contents}
+      <Grid fluid>
+        <Row>
+        <Col sm={10}>
+          <h2>Alla Matcher</h2>
+            {contents}
+          </Col>
+          <Col sm={2}>
+          <div>Menu here</div>
+          </Col>
+        </Row>
+      </Grid>
+      
       </div>
     );
   }

@@ -50,7 +50,7 @@ namespace betscraping
             var redis = new Redis(Database);
 
             var schedulesConcurrentMatches = 1;
-            var scheduledMatchUtc = GetGameData( ref schedulesConcurrentMatches);
+            var scheduledMatchUtc = GetGameData(ref schedulesConcurrentMatches);
 
             WriteEvent($"{nameof(scheduledMatchUtc)}:{scheduledMatchUtc}" +
                        $"|{nameof(schedulesConcurrentMatches)}:{schedulesConcurrentMatches}");

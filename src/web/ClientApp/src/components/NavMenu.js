@@ -20,7 +20,7 @@ export class NavMenu extends Component {
           <Nav>
             <LinkContainer to={'/'} exact>
               <NavItem>
-                <Glyphicon glyph='home' /> Nästa match
+                <Glyphicon glyph='home' /> Senaste resultat
               </NavItem>
             </LinkContainer>
 
