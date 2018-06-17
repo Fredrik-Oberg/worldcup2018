@@ -22,6 +22,7 @@ namespace betscraping
         private const string Participants = "participants:";
         private const string IsBusy = "IsBusy";
         private const string Lastupdatematch = "LastUpdateMatch";
+        private const string LastFullUpdate = "LastFullUpdate";
 
         private int NumberOfParticipants { get; }
         private int Database { get; }
@@ -52,69 +53,93 @@ namespace betscraping
 
             var redis = new Redis(Database);
 
-            var schedulesConcurrentMatches = 1;
-            var scheduledMatchUtc = GetGameData(ref schedulesConcurrentMatches);
+            var gameData = GetGameData();
 
-            WriteEvent($"{nameof(scheduledMatchUtc)}:{scheduledMatchUtc}" +
-                       $"|{nameof(schedulesConcurrentMatches)}:{schedulesConcurrentMatches}");
+            WriteEvent($"{nameof(gameData.MatchStartTime)}:{gameData.MatchStartTime}" +
+                       $"|{nameof(gameData.ConcurrentGames)}:{gameData.ConcurrentGames}");
 
             var savedLastMatchUpdate = redis.GetRedisValue<DateTime>(Lastupdatematch);
 
             var isBusy = redis.GetRedisValue<bool>(IsBusy);
+            var now = DateTime.UtcNow;
 
-            if (scheduledMatchUtc < DateTime.UtcNow && savedLastMatchUpdate != scheduledMatchUtc && isBusy == false)
+            if (gameData.MatchStartTime < DateTime.UtcNow && savedLastMatchUpdate != gameData.MatchStartTime && isBusy == false)
             {
                 WriteEvent("Start scraping");
 
-                var driver1 = NewWebDriver();
-                var driver2 = NewWebDriver();
-                var driver3 = NewWebDriver();
+                Init(redis, gameData.ConcurrentGames, gameData.MatchStartTime);
+                redis.SetRedisValue(false, IsBusy);
 
-                try
+            }
+            //Do a full scrape of every game played so far
+            else if (isBusy == false && now.Hour > 3 && now.Hour < 4)
+            {
+                var lastFullUpdate = redis.GetRedisValue<DateTime>(LastFullUpdate);
+                if (lastFullUpdate.Date >= now.Date) return;
+
+                WriteEvent("Start full scraping");
+
+                var gamesUntilNow = GetGameDataForMatchesUntilNow();
+                foreach (var game in gamesUntilNow)
                 {
-                    redis.SetRedisValue(true, IsBusy);
-
-                    for (var i = 0; i < NumberOfParticipants; i += 3)
-                    {
-                        var tasks = new[]
-                        {
-
-                            Task.Factory.StartNew(() =>
-                                TryScrape(driver1,
-                                    i, schedulesConcurrentMatches, scheduledMatchUtc, redis)),
-                            Task.Factory.StartNew(() =>
-                                TryScrape(driver2,
-                                    i + 1, schedulesConcurrentMatches, scheduledMatchUtc, redis)),
-                            Task.Factory.StartNew(() =>
-                                TryScrape(driver3,
-                                    i + 2, schedulesConcurrentMatches, scheduledMatchUtc, redis))
-                        };
-
-                        Task.WaitAll(tasks);
-                    }
-
-                    redis.SetRedisValue(scheduledMatchUtc, Lastupdatematch);
+                    Init(redis, game.ConcurrentGames, game.MatchStartTime);
                 }
 
-                catch (Exception e)
-                {
-                    WriteEvent($"Scraping:{NewLine}{e.Message}{NewLine}{e.StackTrace}");
-                }
-                finally
-                {
-                    driver1.Quit();
-                    driver2.Quit();
-                    driver3.Quit();
+                redis.SetRedisValue(now, LastFullUpdate);
 
-                    redis.SetRedisValue(false, IsBusy);
-                }
+                redis.SetRedisValue(false, IsBusy);
             }
             else
             {
                 WriteEvent($"No scraping needed currentTime: {DateTime.UtcNow} {NewLine}" +
-                           $"|{nameof(scheduledMatchUtc)}:{scheduledMatchUtc} {NewLine}" +
                            $"|{nameof(savedLastMatchUpdate)}:{savedLastMatchUpdate} {NewLine}" +
                            $"|{nameof(isBusy)}:{isBusy} {NewLine}");
+            }
+        }
+
+        private void Init(Redis redis,
+            int schedulesConcurrentMatches,
+            DateTime scheduledMatchUtc)
+        {
+            var driver1 = NewWebDriver();
+            var driver2 = NewWebDriver();
+            var driver3 = NewWebDriver();
+
+            try
+            {
+                redis.SetRedisValue(true, IsBusy);
+
+                for (var i = 0; i < NumberOfParticipants; i += 3)
+                {
+                    var tasks = new[]
+                    {
+                        Task.Factory.StartNew(() =>
+                            TryScrape(driver1,
+                                i, schedulesConcurrentMatches, scheduledMatchUtc, redis)),
+                        Task.Factory.StartNew(() =>
+                            TryScrape(driver2,
+                                i + 1, schedulesConcurrentMatches, scheduledMatchUtc, redis)),
+                        Task.Factory.StartNew(() =>
+                            TryScrape(driver3,
+                                i + 2, schedulesConcurrentMatches, scheduledMatchUtc, redis))
+                    };
+
+                    Task.WaitAll(tasks);
+                }
+
+                redis.SetRedisValue(scheduledMatchUtc, Lastupdatematch);
+            }
+
+            catch (Exception e)
+            {
+                WriteEvent($"Scraping:{NewLine}{e.Message}{NewLine}{e.StackTrace}");
+            }
+            finally
+            {
+                driver1.Quit();
+                driver2.Quit();
+                driver3.Quit();
+
             }
         }
 
@@ -257,7 +282,7 @@ namespace betscraping
             return new RemoteWebDriver(new Uri(driverAddress), new ChromeOptions());
         }
 
-        private static DateTime GetGameData(ref int schedulesConcurrentMatches)
+        private static GameData GetGameData()
         {
             using (StreamReader r = new StreamReader(AppDomain.CurrentDomain.BaseDirectory + "/assets/schedule.json"))
             {
@@ -276,13 +301,52 @@ namespace betscraping
 
                     WriteEvent($"scheduledMatchUtc + {hoursToAdd}:{scheduledMatchUtc.AddHours(hoursToAdd)}{NewLine} UTCTimeNow:{DateTime.UtcNow}");
 
-                    schedulesConcurrentMatches = schedule.ConcurrentGames;
-                    return scheduledMatchUtc;
+                    return new GameData
+                    {
+                        MatchStartTime = scheduledMatchUtc,
+                        ConcurrentGames = schedule.ConcurrentGames
+                    };
                 }
             }
 
-            return DateTime.MaxValue;
+            return new GameData
+            {
+                ConcurrentGames = 0,
+                MatchStartTime = DateTime.MaxValue
+            };
         }
+        private List<GameData> GetGameDataForMatchesUntilNow()
+        {
+            var matchesUntilNow = new List<GameData>();
+            using (StreamReader r = new StreamReader(AppDomain.CurrentDomain.BaseDirectory + "/assets/schedule.json"))
+            {
+                var json = r.ReadToEnd();
+                var schedules = JsonConvert.DeserializeObject<IList<Schedule>>(json);
+                foreach (var schedule in schedules)
+                {
+                    var parsedGameTime = DateTime.ParseExact(schedule.Start, "yyyy-MM-dd HH:mm",
+                        CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal);
+
+                    var scheduledMatchUtc = DateTime.SpecifyKind(parsedGameTime, DateTimeKind.Utc);
+                    var now = DateTime.UtcNow;
+
+                    if (scheduledMatchUtc > now) break;
+
+                    WriteEvent($"GetGameDataForMatchesUntilNow {NewLine}scheduledMatchUtc: {scheduledMatchUtc}{NewLine} UTCTimeNow:{now}");
+
+                    matchesUntilNow.Add(new GameData
+                    {
+                        MatchStartTime = scheduledMatchUtc,
+                        ConcurrentGames = schedule.ConcurrentGames,
+
+                    });
+                }
+            }
+
+            return matchesUntilNow;
+        }
+
+
         private static void RemoveOldMatch(Participant user,
             Match match)
         {
@@ -352,5 +416,11 @@ namespace betscraping
                 return TryAgain(action, j, limit);
             }
         }
+    }
+
+    internal class GameData
+    {
+        public DateTime MatchStartTime { get; set; }
+        public int ConcurrentGames { get; set; }
     }
 }
