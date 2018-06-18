@@ -18,7 +18,7 @@ namespace RedisLayer
         public string Name { get; set; }
         public string LastUpdated { get; set; }
         public List<Match> Matches { get; set; }
-        public string Points { get; set; }
+        public int Points { get; set; }
     }
     public class Match
     {
