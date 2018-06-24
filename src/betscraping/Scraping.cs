@@ -72,7 +72,7 @@ namespace betscraping
 
             }
             //Do a full scrape of every game played so far
-            else if (isBusy == false && now.Hour > 3 && now.Hour < 4)
+            else if (isBusy == false && now.Hour == 4)
             {
                 var lastFullUpdate = redis.GetRedisValue<DateTime>(LastFullUpdate);
                 if (lastFullUpdate.Date >= now.Date) return;
