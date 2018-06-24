@@ -350,7 +350,7 @@ namespace betscraping
         private static void RemoveOldMatch(Participant user,
             Match match)
         {
-            var matchAlreadySaved = user.Matches.FirstOrDefault(x => x.MatchStart == match.MatchStart);
+            var matchAlreadySaved = user.Matches.FirstOrDefault(x => x.MatchStart == match.MatchStart && x.HomeTeam == match.HomeTeam);
             if (matchAlreadySaved != null)
             {
                 user.Matches.Remove(matchAlreadySaved);
